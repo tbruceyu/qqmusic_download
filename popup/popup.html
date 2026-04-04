@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QQ音乐下载器</title>
+  <link rel="stylesheet" href="../styles/common.css">
+  <link rel="stylesheet" href="popup.css">
+  <script src="../lib/jszip.min.js"></script>
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <h1>📥 下载记录</h1>
+    </header>
+
+    <section class="record-section">
+      <div class="record-actions">
+        <button id="playBtn" class="btn btn-play">▶️ 开始自动播放</button>
+        <button id="exportBtn" class="btn btn-export">📤 导出列表</button>
+        <button id="downloadAllBtn" class="btn btn-download-all">📥 批量下载</button>
+        <button id="clearDownloadsBtn" class="btn btn-danger">🗑️ 清空</button>
+      </div>
+      <div id="playStatus" class="play-status"></div>
+    </section>
+
+    <section class="list-section">
+      <h2>全部下载记录 (<span id="downloadCount">0</span>)</h2>
+      <div id="downloadListContainer" class="list-container">
+        <div class="empty-state">暂无下载记录</div>
+      </div>
+    </section>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <footer class="popup-footer">
+      <p>仅供学习交流，请支持正版音乐</p>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
