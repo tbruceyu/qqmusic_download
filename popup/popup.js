@@ -39,10 +39,13 @@
       const response = await chrome.runtime.sendMessage({ action: 'getDownloadRecords' });
       const allRecords = response.records || [];
       
+      // 过滤掉没有歌名的无效记录，双重保证
+      const validRecords = allRecords.filter(record => record.songName && record.songName.trim() !== '');
+      
       // 按歌曲名称去重，保留最新的记录
       const uniqueMap = new Map();
-      allRecords.forEach(record => {
-        const key = record.songName || record.filename;
+      validRecords.forEach(record => {
+        const key = record.songName;
         // 如果不存在，或者存在但当前记录更新，就替换
         if (!uniqueMap.has(key) || record.time > uniqueMap.get(key).time) {
           uniqueMap.set(key, record);
@@ -170,9 +173,9 @@
         // 停止播放
         await chrome.tabs.sendMessage(tab.id, { action: 'stopAutoPlay' });
         isPlaying = false;
-        playBtn.textContent = '▶️ 开始自动播放';
+        playBtn.textContent = '▶️ 获取链接';
         playBtn.classList.remove('playing');
-        showStatus('已停止自动播放', 'success');
+        showStatus('已停止获取', 'success');
         clearInterval(statusUpdateTimer);
         updatePlayStatus();
       } else {
@@ -180,9 +183,9 @@
         const response = await chrome.tabs.sendMessage(tab.id, { action: 'startAutoPlay' });
         if (response.success) {
           isPlaying = true;
-          playBtn.textContent = '⏸️ 停止自动播放';
+          playBtn.textContent = '⏸️ 停止获取';
           playBtn.classList.add('playing');
-          showStatus(`开始自动播放，共${response.total}首歌曲`, 'success');
+          showStatus(`开始获取，共${response.total}首歌曲`, 'success');
           // 每秒更新状态
           statusUpdateTimer = setInterval(updatePlayStatus, 1000);
         } else {
@@ -201,7 +204,7 @@
       if (!tab || !tab.url || !tab.url.includes('qq.com')) {
         playStatus.textContent = '请打开QQ音乐页面';
         playStatus.className = 'play-status error';
-        playBtn.textContent = '▶️ 开始自动播放';
+        playBtn.textContent = '▶️ 获取链接';
         playBtn.classList.remove('playing');
         isPlaying = false;
         return;
@@ -214,24 +217,25 @@
       if (isPlaying) {
         playBtn.textContent = '⏸️ 停止自动播放';
         playBtn.classList.add('playing');
-        playStatus.textContent = `正在播放：${status.currentSong ? status.currentSong.name : '加载中...'} (第${status.currentIndex}首/共${status.total}首)`;
+        playStatus.textContent = `播放中 (第${status.currentIndex}首/共${status.total}首)`;
         playStatus.className = 'play-status playing';
       } else if (status.total > 0 && status.currentIndex >= status.total) {
-        playBtn.textContent = '▶️ 开始自动播放';
+        playBtn.textContent = '▶️ 获取链接';
         playBtn.classList.remove('playing');
-        playStatus.textContent = `播放完成！共${status.total}首歌曲`;
+        // 显示实际捕获到的有效歌曲数量，而不是列表总数，避免误导
+        playStatus.textContent = `获取完成！共${downloadRecords.length}首有效歌曲`;
         playStatus.className = 'play-status success';
         if (statusUpdateTimer) clearInterval(statusUpdateTimer);
       } else {
-        playBtn.textContent = '▶️ 开始自动播放';
+        playBtn.textContent = '▶️ 获取链接';
         playBtn.classList.remove('playing');
-        playStatus.textContent = '就绪，点击开始自动播放';
+        playStatus.textContent = '就绪，点击获取链接';
         playStatus.className = 'play-status';
       }
     } catch (err) {
       playStatus.textContent = '获取状态失败';
       playStatus.className = 'play-status error';
-      playBtn.textContent = '▶️ 开始自动播放';
+      playBtn.textContent = '▶️ 获取链接';
       playBtn.classList.remove('playing');
       isPlaying = false;
     }

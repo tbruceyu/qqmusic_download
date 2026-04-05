@@ -7,6 +7,7 @@
   let isPlaying = false;
   let currentPlayIndex = 0;
   let songList = [];
+  let playRetryCount = 0; // 播放重试次数，最多重试2次
 
   function isQQMusicPage() {
     return window.location.hostname.includes(QQ_MUSIC_DOMAIN);
@@ -84,8 +85,38 @@
 
   function playNext() {
     if (currentPlayIndex >= songList.length) {
-      stopAutoPlay();
-      console.log('▶️ 自动播放完成，共播放', songList.length, '首');
+      // 重新解析歌曲列表，确保列表最新
+      parseSongList();
+      const totalSongs = songList.length;
+      
+      // 检查已捕获的有效资源数量
+      chrome.runtime.sendMessage({ action: 'getDownloadRecords' }, (response) => {
+        const records = response.records || [];
+        // 去重后统计有效数量，和实际期望数量对比
+        const uniqueSongs = new Set(records.map(r => r.songName));
+        const validCount = uniqueSongs.size;
+        console.log(`📊 播放完成检查：期望${totalSongs}首，实际捕获${validCount}首`);
+        
+        // 如果捕获数量不足，最多重试2次，尽可能补全所有歌曲
+        if (validCount < totalSongs && playRetryCount < 2) {
+          playRetryCount++;
+          currentPlayIndex = 0;
+          console.log(`🔄 捕获数量不足，还差${totalSongs - validCount}首，开始第${playRetryCount}次重试`);
+          // 重试前清空IndexedDB缓存，避免旧缓存影响新的资源捕获
+          clearAudioDB().then(() => {
+            setTimeout(() => {
+              playNext();
+            }, 1000); // 清空完成后延迟1秒开始重试
+          });
+        } else {
+          stopAutoPlay();
+          if (validCount < totalSongs) {
+            console.log(`⚠️  获取完成，仍有${totalSongs - validCount}首歌曲捕获失败，可能是歌曲无有效资源或网络问题`);
+          } else {
+            console.log('✅ 全部获取完成，有效资源共', validCount, '首');
+          }
+        }
+      });
       return;
     }
 
@@ -165,6 +196,7 @@
     clearAudioDB().then(() => {
       isPlaying = true;
       currentPlayIndex = 0;
+      playRetryCount = 0; // 重置重试计数
       console.log('▶️ 开始自动播放，共', list.length, '首歌曲');
 
       // 立即播放第一首

@@ -68,11 +68,17 @@ chrome.webRequest.onCompleted.addListener(
             }
           }
 
+          // 没有获取到歌名的资源直接忽略，保证记录有效性
+          if (!currentSongName || currentSongName.trim() === '') {
+            console.log('⚠️ [资源忽略] 未获取到歌曲名，跳过:', url);
+            return;
+          }
+
           // 只保留必要字段，不需要下载状态
           const resource = {
             url: url,
             filename: filename,
-            songName: currentSongName || filename,
+            songName: currentSongName,
             size: size,
             mime: mimeType,
             time: Date.now()
